@@ -1770,6 +1770,18 @@ func validatePrivateKeyProvider(pkpConf *meshconfig.PrivateKeyProvider) error {
 				errs = multierror.Append(errs, errors.New("pollDelay must be non zero"))
 			}
 		}
+	case *meshconfig.PrivateKeyProvider_Qat:
+		qatConf := pkpConf.GetQat()
+		if qatConf == nil {
+			errs = multierror.Append(errs, errors.New("qat confguration is required"))
+		} else {
+			pollDelay := qatConf.GetPollDelay()
+			if pollDelay == nil {
+				errs = multierror.Append(errs, errors.New("pollDelay is required"))
+			} else if pollDelay.GetSeconds() == 0 && pollDelay.GetNanos() == 0 {
+				errs = multierror.Append(errs, errors.New("pollDelay must be non zero"))
+			}
+		}
 	default:
 		errs = multierror.Append(errs, errors.New("unknown private key provider"))
 	}
@@ -2136,6 +2148,20 @@ func validateJwtRule(rule *security_beta.JWTRule) (errs error) {
 	for _, location := range rule.FromParams {
 		if len(location) == 0 {
 			errs = multierror.Append(errs, errors.New("location query must be non-empty string"))
+		}
+	}
+
+	for _, claimAndHeaders := range rule.OutputClaimToHeaders {
+		if claimAndHeaders == nil {
+			errs = multierror.Append(errs, errors.New("outputClaimToHeaders must not be null"))
+			continue
+		}
+		if claimAndHeaders.Claim == "" || claimAndHeaders.Header == "" {
+			errs = multierror.Append(errs, errors.New("outputClaimToHeaders header and claim value must be non-empty string"))
+			continue
+		}
+		if err := ValidateHTTPHeaderValue(claimAndHeaders.Header); err != nil {
+			errs = multierror.Append(errs, err)
 		}
 	}
 	return
@@ -3349,9 +3375,9 @@ var ValidateServiceEntry = registerValidateFunc("ValidateServiceEntry",
 					}
 				}
 			}
-			if serviceEntry.Resolution == networking.ServiceEntry_DNS_ROUND_ROBIN && len(serviceEntry.Endpoints) != 1 {
+			if serviceEntry.Resolution == networking.ServiceEntry_DNS_ROUND_ROBIN && len(serviceEntry.Endpoints) > 1 {
 				errs = appendValidation(errs,
-					fmt.Errorf("there must only endpoint for resolution mode %s", serviceEntry.Resolution))
+					fmt.Errorf("there must only be 0 or 1 endpoint for resolution mode %s", serviceEntry.Resolution))
 			}
 
 			for _, endpoint := range serviceEntry.Endpoints {

@@ -16,6 +16,7 @@ package gateway
 
 import (
 	"fmt"
+	"net"
 	"sort"
 	"strings"
 
@@ -458,12 +459,10 @@ func routeMeta(obj config.Config) map[string]string {
 // see https://gateway-api.sigs.k8s.io/v1alpha2/references/spec/#gateway.networking.k8s.io/v1alpha2.HTTPRouteRule
 func sortHTTPRoutes(routes []*istio.HTTPRoute) {
 	sort.SliceStable(routes, func(i, j int) bool {
-		if len(routes[i].Match) != 0 {
-			if len(routes[j].Match) == 0 {
-				return true
-			}
-		} else if len(routes[j].Match) == 0 {
+		if len(routes[i].Match) == 0 {
 			return false
+		} else if len(routes[j].Match) == 0 {
+			return true
 		}
 		m1, m2 := routes[i].Match[0], routes[j].Match[0]
 		len1, len2 := getURILength(m1), getURILength(m2)
@@ -1420,17 +1419,17 @@ func convertGateways(r ConfigContext) ([]config.Config, map[parentKey]map[k8s.Se
 		}
 
 		// TODO: we lose address if servers is empty due to an error
-		internal, external, warnings := r.Context.ResolveGatewayInstances(obj.Namespace, gatewayServices, servers)
+		internal, external, pending, warnings := r.Context.ResolveGatewayInstances(obj.Namespace, gatewayServices, servers)
 		if len(skippedAddresses) > 0 {
 			warnings = append(warnings, fmt.Sprintf("Only Hostname is supported, ignoring %v", skippedAddresses))
 		}
 		if len(warnings) > 0 {
 			var msg string
-			if len(internal) > 0 {
+			if len(internal) != 0 {
 				msg = fmt.Sprintf("Assigned to service(s) %s, but failed to assign to all requested addresses: %s",
 					humanReadableJoin(internal), strings.Join(warnings, "; "))
 			} else {
-				msg = fmt.Sprintf("failed to assign to any requested addresses: %s", strings.Join(warnings, "; "))
+				msg = fmt.Sprintf("Failed to assign to any requested addresses: %s", strings.Join(warnings, "; "))
 			}
 			gatewayConditions[string(k8s.GatewayConditionReady)].error = &ConfigError{
 				Reason:  string(k8s.GatewayReasonAddressNotAssigned),
@@ -1451,8 +1450,13 @@ func convertGateways(r ConfigContext) ([]config.Config, map[parentKey]map[k8s.Se
 			if len(addressesToReport) == 0 {
 				// There are no external addresses, so report the internal ones
 				// TODO: should we always report both?
-				addressesToReport = internal
 				addrType = k8s.HostnameAddressType
+				for _, hostport := range internal {
+					svchost, _, _ := net.SplitHostPort(hostport)
+					if !contains(pending, svchost) && !contains(addressesToReport, svchost) {
+						addressesToReport = append(addressesToReport, svchost)
+					}
+				}
 			}
 			gs.Addresses = make([]k8s.GatewayAddress, 0, len(addressesToReport))
 			for _, addr := range addressesToReport {
@@ -1575,6 +1579,10 @@ func buildListener(r ConfigContext, obj config.Config, l k8s.Listener, listenerI
 		},
 		string(k8s.ListenerConditionAccepted): {
 			reason:  string(k8s.ListenerReasonAccepted),
+			message: "No errors found",
+		},
+		string(k8s.ListenerConditionProgrammed): {
+			reason:  string(k8s.ListenerReasonProgrammed),
 			message: "No errors found",
 		},
 		// nolint: staticcheck // Deprecated condition, set both until 1.17
@@ -1797,6 +1805,15 @@ func humanReadableJoin(ss []string) string {
 	default:
 		return strings.Join(ss[:len(ss)-1], ", ") + ", and " + ss[len(ss)-1]
 	}
+}
+
+func contains(ss []string, s string) bool {
+	for _, str := range ss {
+		if str == s {
+			return true
+		}
+	}
+	return false
 }
 
 // NamespaceNameLabel represents that label added automatically to namespaces is newer Kubernetes clusters

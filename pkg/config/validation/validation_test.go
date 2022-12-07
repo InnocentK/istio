@@ -873,6 +873,55 @@ func TestValidateMeshConfigProxyConfig(t *testing.T) {
 			),
 			isValid: true,
 		},
+		{
+			name: "private key provider with qat without poll_delay",
+			in: modify(valid,
+				func(c *meshconfig.ProxyConfig) {
+					c.PrivateKeyProvider = &meshconfig.PrivateKeyProvider{
+						Provider: &meshconfig.PrivateKeyProvider_Qat{
+							Qat: &meshconfig.PrivateKeyProvider_QAT{},
+						},
+					}
+				},
+			),
+			isValid: false,
+		},
+		{
+			name: "private key provider with qat zero poll_delay",
+			in: modify(valid,
+				func(c *meshconfig.ProxyConfig) {
+					c.PrivateKeyProvider = &meshconfig.PrivateKeyProvider{
+						Provider: &meshconfig.PrivateKeyProvider_Qat{
+							Qat: &meshconfig.PrivateKeyProvider_QAT{
+								PollDelay: &durationpb.Duration{
+									Seconds: 0,
+									Nanos:   0,
+								},
+							},
+						},
+					}
+				},
+			),
+			isValid: false,
+		},
+		{
+			name: "private key provider with qat",
+			in: modify(valid,
+				func(c *meshconfig.ProxyConfig) {
+					c.PrivateKeyProvider = &meshconfig.PrivateKeyProvider{
+						Provider: &meshconfig.PrivateKeyProvider_Qat{
+							Qat: &meshconfig.PrivateKeyProvider_QAT{
+								PollDelay: &durationpb.Duration{
+									Seconds: 0,
+									Nanos:   1000,
+								},
+							},
+						},
+					}
+				},
+			),
+			isValid: true,
+		},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
@@ -5008,6 +5057,19 @@ func TestValidateServiceEntries(t *testing.T) {
 			valid:   false,
 			warning: false,
 		},
+		{
+			name: "dns round robin with 0 endpoints", in: &networking.ServiceEntry{
+				Hosts:     []string{"google.com"},
+				Addresses: []string{},
+				Ports: []*networking.Port{
+					{Number: 8081, Protocol: "http", Name: "http-valid1"},
+				},
+				Endpoints:  []*networking.WorkloadEntry{},
+				Resolution: networking.ServiceEntry_DNS_ROUND_ROBIN,
+			},
+			valid:   true,
+			warning: false,
+		},
 	}
 
 	for _, c := range cases {
@@ -7374,6 +7436,77 @@ func TestValidateRequestAuthentication(t *testing.T) {
 							{
 								Name:   "x-foo",
 								Prefix: "Bearer ",
+							},
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name:       "null outputClaimToHeader",
+			configName: constants.DefaultAuthenticationPolicyName,
+			in: &security_beta.RequestAuthentication{
+				JwtRules: []*security_beta.JWTRule{
+					{
+						Issuer:               "foo.com",
+						JwksUri:              "https://foo.com",
+						OutputClaimToHeaders: []*security_beta.ClaimToHeader{{}},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name:       "null claim value in outputClaimToHeader ",
+			configName: constants.DefaultAuthenticationPolicyName,
+			in: &security_beta.RequestAuthentication{
+				JwtRules: []*security_beta.JWTRule{
+					{
+						Issuer:  "foo.com",
+						JwksUri: "https://foo.com",
+						OutputClaimToHeaders: []*security_beta.ClaimToHeader{
+							{
+								Header: "x-jwt-claim",
+								Claim:  "",
+							},
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name:       "null header value in outputClaimToHeader ",
+			configName: constants.DefaultAuthenticationPolicyName,
+			in: &security_beta.RequestAuthentication{
+				JwtRules: []*security_beta.JWTRule{
+					{
+						Issuer:  "foo.com",
+						JwksUri: "https://foo.com",
+						OutputClaimToHeaders: []*security_beta.ClaimToHeader{
+							{
+								Header: "",
+								Claim:  "sub",
+							},
+						},
+					},
+				},
+			},
+			valid: false,
+		},
+		{
+			name:       "invalid header value in outputClaimToHeader ",
+			configName: constants.DefaultAuthenticationPolicyName,
+			in: &security_beta.RequestAuthentication{
+				JwtRules: []*security_beta.JWTRule{
+					{
+						Issuer:  "foo.com",
+						JwksUri: "https://foo.com",
+						OutputClaimToHeaders: []*security_beta.ClaimToHeader{
+							{
+								Header: "abc%123",
+								Claim:  "sub",
 							},
 						},
 					},

@@ -25,7 +25,7 @@ require (
 	github.com/coreos/go-oidc/v3 v3.4.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/docker/cli v20.10.21+incompatible
-	github.com/envoyproxy/go-control-plane v0.10.3-0.20221109183938-2935a23e638f
+	github.com/envoyproxy/go-control-plane v0.10.3-0.20221122163226-26d79674bf46
 	github.com/evanphx/json-patch/v5 v5.6.0
 	github.com/fatih/color v1.13.0
 	github.com/felixge/fgprof v0.9.3
@@ -65,7 +65,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/spf13/cobra v1.6.1
 	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.13.0
+	github.com/spf13/viper v1.14.0
 	github.com/vishvananda/netlink v1.2.1-beta.2
 	github.com/yl2chen/cidranger v1.0.2
 	go.opencensus.io v0.23.1-0.20220331163232-052120675fac
@@ -78,16 +78,16 @@ require (
 	golang.org/x/sys v0.1.0
 	golang.org/x/time v0.1.0
 	gomodules.xyz/jsonpatch/v3 v3.0.1
-	google.golang.org/api v0.101.0
+	google.golang.org/api v0.102.0
 	google.golang.org/genproto v0.0.0-20221027153422-115e99e71e1c
-	google.golang.org/grpc v1.50.1
+	google.golang.org/grpc v1.51.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 	helm.sh/helm/v3 v3.10.1
-	istio.io/api v0.0.0-20221116173357-a65564cea5c6
-	istio.io/client-go v1.12.0-alpha.5.0.20221116173757-581df460cd20
+	istio.io/api v0.0.0-20221205210105-82e7f2d88e02
+	istio.io/client-go v1.12.0-alpha.5.0.20221205210505-7ef5d72630de
 	istio.io/pkg v0.0.0-20221115162234-5e468deffb77
 	k8s.io/api v0.25.3
 	k8s.io/apiextensions-apiserver v0.25.2
@@ -100,7 +100,7 @@ require (
 	k8s.io/kubectl v0.25.3
 	k8s.io/utils v0.0.0-20221012122500-cfd413dd9e85
 	sigs.k8s.io/controller-runtime v0.13.0
-	sigs.k8s.io/gateway-api v0.5.1-0.20221110151456-3daef509bcc9
+	sigs.k8s.io/gateway-api v0.6.0-rc1
 	sigs.k8s.io/mcs-api v0.1.0
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -228,7 +228,7 @@ require (
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/stoewer/go-strcase v1.2.0 // indirect
-	github.com/stretchr/testify v1.8.0 // indirect
+	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/subosito/gotenv v1.4.1 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
 	github.com/vishvananda/netns v0.0.0-20210104183010-2eb08e3e575f // indirect
